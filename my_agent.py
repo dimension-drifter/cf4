@@ -65,7 +65,7 @@ async def entrypoint(ctx: JobContext):
         llm=groq.LLM(model="llama-3.1-8b-instant"), # Using Llama 3 8B on Groq
         
         # TTS (Text-to-Speech) - synthesizes the agent's voice
-        tts=cartesia.TTS(), # A fast, good-quality TTS
+        tts=cartesia.TTS(language="hi"), 
         
         # Turn Detection - intelligently decides when the user's turn is over
         turn_detection=MultilingualModel(),
@@ -83,5 +83,6 @@ if __name__ == "__main__":
             # Give the inference process up to 60 seconds to initialize.
             # This is especially useful on the first run to download models.
             initialize_process_timeout=60.0,
+            load_threshold=1.5
         )
     )
