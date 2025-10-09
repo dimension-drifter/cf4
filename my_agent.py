@@ -26,7 +26,7 @@ class MyAgent(Agent):
     def __init__(self) -> None:
         super().__init__(
             instructions=(
-                "You are a helpful AI assistant for a business in Jaipur, India. "
+                "You are a helpful FEMALE AI assistant for a business in Jaipur, India. "
                 "You must understand and respond in Hinglish, a mix of Hindi and English. "
                 "Be polite and conversational. If the user speaks in Hindi, reply in Hindi. "
                 "If they speak English, reply in English. If they mix, you mix."
@@ -65,7 +65,7 @@ async def entrypoint(ctx: JobContext):
         llm=groq.LLM(model="meta-llama/llama-4-scout-17b-16e-instruct"), # Using Llama 4 Scout 17B on Groq
         
         # TTS (Text-to-Speech) - synthesizes the agent's voice
-        tts=cartesia.TTS(language="hi"), 
+        tts=cartesia.TTS(voice="faf0731e-dfb9-4cfc-8119-259a79b27e12"), 
         
         # Turn Detection - intelligently decides when the user's turn is over
         turn_detection=MultilingualModel(),
