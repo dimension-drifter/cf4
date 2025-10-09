@@ -62,7 +62,7 @@ async def entrypoint(ctx: JobContext):
         stt=deepgram.STT(model="nova-3", language="multi"), # 'multi' is great for Hinglish
         
         # LLM (The Brain) - THIS IS THE MAGIC LINE FOR GROQ
-        llm=groq.LLM(model="llama-3.1-8b-instant"), # Using Llama 3 8B on Groq
+        llm=groq.LLM(model="meta-llama/llama-4-scout-17b-16e-instruct"), # Using Llama 4 Scout 17B on Groq
         
         # TTS (Text-to-Speech) - synthesizes the agent's voice
         tts=cartesia.TTS(language="hi"), 
