@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pink Perl - Admin Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #667eea;
+            color: white;
+        }
+        .status-confirmed { color: green; font-weight: bold; }
+        .status-cancelled { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏨 Pink Perl Hotel - Admin Dashboard</h1>
+        <p>Real-time booking management</p>
+    </div>
+
+    <div class="section">
+        <h2>🛏️ Room Bookings</h2>
+        <table id="roomBookings">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Guest</th>
+                    <th>Phone</th>
+                    <th>Room Type</th>
+                    <th>Check In</th>
+                    <th>Check Out</th>
+                    <th>Guests</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>🍽️ Restaurant Bookings</h2>
+        <table id="restaurantBookings">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Guest</th>
+                    <th>Phone</th>
+                    <th>Restaurant</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Guests</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        async function loadBookings() {
+            const response = await fetch('/admin/api/bookings');
+            const data = await response.json();
+
+            // Load room bookings
+            const roomTable = document.querySelector('#roomBookings tbody');
+            roomTable.innerHTML = data.room_bookings.map(b => `
+                <tr>
+                    <td>${b.booking_id}</td>
+                    <td>${b.name || 'N/A'}</td>
+                    <td>${b.phone || 'N/A'}</td>
+                    <td>${b.room_type}</td>
+                    <td>${b.check_in}</td>
+                    <td>${b.check_out}</td>
+                    <td>${b.adults} adults, ${b.children} children</td>
+                    <td class="status-${b.status}">${b.status}</td>
+                </tr>
+            `).join('');
+
+            // Load restaurant bookings
+            const restTable = document.querySelector('#restaurantBookings tbody');
+            restTable.innerHTML = data.restaurant_bookings.map(b => `
+                <tr>
+                    <td>${b.booking_id}</td>
+                    <td>${b.name || 'N/A'}</td>
+                    <td>${b.phone || 'N/A'}</td>
+                    <td>${b.restaurant}</td>
+                    <td>${b.date}</td>
+                    <td>${b.time}</td>
+                    <td>${b.guests}</td>
+                    <td class="status-${b.status}">${b.status}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Load bookings on page load and refresh every 10 seconds
+        loadBookings();
+        setInterval(loadBookings, 10000);
+    </script>
+</body>
+</html>
