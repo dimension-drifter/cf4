@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Assistant - Hinglish Support</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .connection-status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .status-disconnected {
+            background: #fee;
+            color: #c33;
+        }
+
+        .status-connecting {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .microphone-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+
+        .microphone-btn.active {
+            background: #d63031;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .transcript-area {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .transcript-message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .user-message {
+            background: #e3f2fd;
+            text-align: right;
+        }
+
+        .agent-message {
+            background: #f3e5f5;
+            text-align: left;
+        }
+
+        .system-message {
+            background: #fff3cd;
+            text-align: center;
+            font-style: italic;
+            color: #856404;
+        }
+
+        .message-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .console-log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-info { color: #4ec9b0; }
+        .log-error { color: #f48771; }
+        .log-warn { color: #dcdcaa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ AI Voice Assistant</h1>
+        <p class="subtitle">Hinglish Support (Hindi + English)</p>
+
+        <div id="status" class="connection-status status-disconnected">
+            Disconnected
+        </div>
+
+        <div class="controls">
+            <input 
+                type="text" 
+                id="roomName" 
+                placeholder="Enter Room Name (e.g., my-test-room)" 
+                value="test-room"
+            />
+            <button id="connectBtn" onclick="connect()">Connect to Room</button>
+        </div>
+
+        <button id="micBtn" class="microphone-btn" onclick="toggleMicrophone()" disabled>
+            🎤
+        </button>
+
+        <div class="transcript-area" id="transcript">
+            <p style="text-align: center; color: #999;">Conversation will appear here...</p>
+        </div>
+
+        <div class="console-log" id="consoleLog">
+            <div class="log-entry log-info">Console logs will appear here...</div>
+        </div>
+    </div>
+
+    <!-- Load LiveKit Client Library - Updated CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    
+    <script>
+        let room = null;
+        let isMicEnabled = false;
+
+        function logToConsole(message, type = 'info') {
+            const consoleLog = document.getElementById('consoleLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            consoleLog.appendChild(logEntry);
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+            
+            // Also log to browser console
+            console.log(message);
+        }
+
+        // Wait for LiveKit to load
+        window.addEventListener('load', () => {
+            if (typeof LivekitClient === 'undefined') {
+                logToConsole('⚠️ LiveKit library failed to load. Retrying...', 'warn');
+                // Try alternative CDN
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/livekit-client@2.5.8/dist/livekit-client.umd.min.js';
+                script.onload = () => {
+                    logToConsole('✅ LiveKit library loaded successfully', 'info');
+                    logToConsole('Voice Assistant UI loaded successfully', 'info');
+                    logToConsole('Enter a room name and click Connect', 'info');
+                };
+                script.onerror = () => {
+                    logToConsole('❌ Failed to load LiveKit library', 'error');
+                    alert('Failed to load required libraries. Please refresh the page.');
+                };
+                document.head.appendChild(script);
+            } else {
+                logToConsole('✅ LiveKit library loaded successfully', 'info');
+                logToConsole('Voice Assistant UI loaded successfully', 'info');
+                logToConsole('Enter a room name and click Connect', 'info');
+            }
+        });
+
+        async function connect() {
+            if (typeof LivekitClient === 'undefined') {
+                alert('LiveKit library is not loaded yet. Please wait and try again.');
+                return;
+            }
+
+            const roomName = document.getElementById('roomName').value.trim();
+            if (!roomName) {
+                alert('Please enter a room name');
+                return;
+            }
+
+            const status = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            const micBtn = document.getElementById('micBtn');
+
+            try {
+                logToConsole(`Connecting to room: ${roomName}`, 'info');
+                status.className = 'connection-status status-connecting';
+                status.textContent = 'Connecting...';
+                connectBtn.disabled = true;
+
+                // Get token from server
+                const response = await fetch('/get-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomName })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get token from server');
+                }
+
+                const data = await response.json();
+                logToConsole('Token received from server', 'info');
+                logToConsole(`Connecting to: ${data.url}`, 'info');
+
+                // Connect to LiveKit room
+                room = new LivekitClient.Room({
+                    adaptiveStream: true,
+                    dynacast: true,
+                });
+                
+                room.on(LivekitClient.RoomEvent.Connected, () => {
+                    logToConsole('Successfully connected to room', 'info');
+                });
+
+                room.on(LivekitClient.RoomEvent.ParticipantConnected, (participant) => {
+                    logToConsole(`Participant joined: ${participant.identity}`, 'info');
+                    if (participant.identity.includes('agent')) {
+                        addMessage('System', '🤖 AI Agent has joined the conversation');
+                    }
+                });
+
+                room.on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
+                
+                room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
+                    logToConsole('Track unsubscribed', 'warn');
+                });
+
+                room.on(LivekitClient.RoomEvent.Disconnected, () => {
+                    logToConsole('Disconnected from room', 'warn');
+                    status.className = 'connection-status status-disconnected';
+                    status.textContent = 'Disconnected';
+                    connectBtn.disabled = false;
+                    micBtn.disabled = true;
+                });
+
+                await room.connect(data.url, data.token);
+
+                status.className = 'connection-status status-connected';
+                status.textContent = `Connected to: ${roomName}`;
+                micBtn.disabled = false;
+
+                addMessage('System', '✅ Connected! Click the microphone to start talking.');
+                logToConsole('Ready to communicate', 'info');
+
+            } catch (error) {
+                console.error('Connection error:', error);
+                logToConsole(`Connection failed: ${error.message}`, 'error');
+                status.className = 'connection-status status-disconnected';
+                status.textContent = 'Connection failed';
+                connectBtn.disabled = false;
+                alert('Failed to connect: ' + error.message);
+            }
+        }
+
+        async function toggleMicrophone() {
+            if (!room) return;
+
+            const micBtn = document.getElementById('micBtn');
+
+            try {
+                if (!isMicEnabled) {
+                    await room.localParticipant.setMicrophoneEnabled(true);
+                    micBtn.classList.add('active');
+                    isMicEnabled = true;
+                    logToConsole('Microphone enabled - Start speaking', 'info');
+                    addMessage('System', '🎤 Microphone is ON - Speak now');
+                } else {
+                    await room.localParticipant.setMicrophoneEnabled(false);
+                    micBtn.classList.remove('active');
+                    isMicEnabled = false;
+                    logToConsole('Microphone disabled', 'warn');
+                    addMessage('System', '🔇 Microphone is OFF');
+                }
+            } catch (error) {
+                logToConsole(`Microphone error: ${error.message}`, 'error');
+                alert('Failed to toggle microphone. Please check browser permissions.');
+            }
+        }
+
+        function handleTrackSubscribed(track, publication, participant) {
+            logToConsole(`Track subscribed: ${track.kind} from ${participant.identity}`, 'info');
+            
+            if (track.kind === 'audio') {
+                const audioElement = track.attach();
+                audioElement.autoplay = true;
+                document.body.appendChild(audioElement);
+                logToConsole('Audio track attached and playing', 'info');
+                
+                if (participant.identity.includes('agent')) {
+                    addMessage('Agent', '🔊 Agent is speaking...');
+                }
+            }
+        }
+
+        function addMessage(speaker, text) {
+            const transcript = document.getElementById('transcript');
+            
+            // Clear initial message
+            if (transcript.querySelector('p[style*="center"]')) {
+                transcript.innerHTML = '';
+            }
+
+            const messageDiv = document.createElement('div');
+            let messageClass = 'transcript-message';
+            
+            if (speaker === 'You') {
+                messageClass += ' user-message';
+            } else if (speaker === 'System') {
+                messageClass += ' system-message';
+            } else {
+                messageClass += ' agent-message';
+            }
+            
+            messageDiv.className = messageClass;
+            messageDiv.innerHTML = `
+                <div class="message-label">${speaker}</div>
+                <div>${text}</div>
+            `;
+            
+            transcript.appendChild(messageDiv);
+            transcript.scrollTop = transcript.scrollHeight;
+        }
+    </script>
+</body>
+</html>

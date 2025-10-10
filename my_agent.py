@@ -65,7 +65,7 @@ async def entrypoint(ctx: JobContext):
         llm=groq.LLM(model="meta-llama/llama-4-scout-17b-16e-instruct"), # Using Llama 4 Scout 17B on Groq
         
         # TTS (Text-to-Speech) - synthesizes the agent's voice
-        tts=cartesia.TTS(voice="faf0731e-dfb9-4cfc-8119-259a79b27e12"), 
+        tts=cartesia.TTS(language="hi", voice="faf0731e-dfb9-4cfc-8119-259a79b27e12"), 
         
         # Turn Detection - intelligently decides when the user's turn is over
         turn_detection=MultilingualModel(),
