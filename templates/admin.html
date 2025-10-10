@@ -18,12 +18,38 @@
             border-radius: 10px;
             margin-bottom: 30px;
         }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 10px;
+        }
         .section {
             background: white;
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #667eea;
+            margin-bottom: 15px;
         }
         table {
             width: 100%;
@@ -40,12 +66,75 @@
         }
         .status-confirmed { color: green; font-weight: bold; }
         .status-cancelled { color: red; font-weight: bold; }
+        .badge-verified {
+            background: #28a745;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+        .badge-unverified {
+            background: #ffc107;
+            color: #333;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🏨 Pink Perl Hotel - Admin Dashboard</h1>
-        <p>Real-time booking management</p>
+        <p>Real-time booking and guest management</p>
+    </div>
+
+    <div class="stats" id="stats">
+        <div class="stat-card">
+            <div class="stat-number" id="totalUsers">0</div>
+            <div class="stat-label">Total Guests</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalRoomBookings">0</div>
+            <div class="stat-label">Room Bookings</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalRestaurantBookings">0</div>
+            <div class="stat-label">Restaurant Bookings</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="verifiedUsers">0</div>
+            <div class="stat-label">Verified Guests</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>👥 Guest Database</h2>
+        <button class="refresh-btn" onclick="loadBookings()">🔄 Refresh Data</button>
+        <table id="usersTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Total Bookings</th>
+                    <th>Status</th>
+                    <th>Registered</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
 
     <div class="section">
@@ -88,38 +177,67 @@
 
     <script>
         async function loadBookings() {
-            const response = await fetch('/admin/api/bookings');
-            const data = await response.json();
+            try {
+                const response = await fetch('/admin/api/bookings');
+                const data = await response.json();
 
-            // Load room bookings
-            const roomTable = document.querySelector('#roomBookings tbody');
-            roomTable.innerHTML = data.room_bookings.map(b => `
-                <tr>
-                    <td>${b.booking_id}</td>
-                    <td>${b.name || 'N/A'}</td>
-                    <td>${b.phone || 'N/A'}</td>
-                    <td>${b.room_type}</td>
-                    <td>${b.check_in}</td>
-                    <td>${b.check_out}</td>
-                    <td>${b.adults} adults, ${b.children} children</td>
-                    <td class="status-${b.status}">${b.status}</td>
-                </tr>
-            `).join('');
+                // Update stats
+                document.getElementById('totalUsers').textContent = data.users.length;
+                document.getElementById('totalRoomBookings').textContent = data.room_bookings.length;
+                document.getElementById('totalRestaurantBookings').textContent = data.restaurant_bookings.length;
+                document.getElementById('verifiedUsers').textContent = 
+                    data.users.filter(u => u.is_verified === 'Yes').length;
 
-            // Load restaurant bookings
-            const restTable = document.querySelector('#restaurantBookings tbody');
-            restTable.innerHTML = data.restaurant_bookings.map(b => `
-                <tr>
-                    <td>${b.booking_id}</td>
-                    <td>${b.name || 'N/A'}</td>
-                    <td>${b.phone || 'N/A'}</td>
-                    <td>${b.restaurant}</td>
-                    <td>${b.date}</td>
-                    <td>${b.time}</td>
-                    <td>${b.guests}</td>
-                    <td class="status-${b.status}">${b.status}</td>
-                </tr>
-            `).join('');
+                // Load users table
+                const usersTable = document.querySelector('#usersTable tbody');
+                usersTable.innerHTML = data.users.map(u => `
+                    <tr>
+                        <td>${u.name}</td>
+                        <td>${u.phone}</td>
+                        <td>${u.email}</td>
+                        <td>${u.total_bookings}</td>
+                        <td>
+                            <span class="badge-${u.is_verified === 'Yes' ? 'verified' : 'unverified'}">
+                                ${u.is_verified === 'Yes' ? '✓ Verified' : '⚠ Incomplete'}
+                            </span>
+                        </td>
+                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+
+                // Load room bookings
+                const roomTable = document.querySelector('#roomBookings tbody');
+                roomTable.innerHTML = data.room_bookings.map(b => `
+                    <tr>
+                        <td>${b.booking_id}</td>
+                        <td>${b.name || 'N/A'}</td>
+                        <td>${b.phone || 'N/A'}</td>
+                        <td>${b.room_type}</td>
+                        <td>${b.check_in}</td>
+                        <td>${b.check_out}</td>
+                        <td>${b.adults} adults, ${b.children} children</td>
+                        <td class="status-${b.status}">${b.status}</td>
+                    </tr>
+                `).join('');
+
+                // Load restaurant bookings
+                const restTable = document.querySelector('#restaurantBookings tbody');
+                restTable.innerHTML = data.restaurant_bookings.map(b => `
+                    <tr>
+                        <td>${b.booking_id}</td>
+                        <td>${b.name || 'N/A'}</td>
+                        <td>${b.phone || 'N/A'}</td>
+                        <td>${b.restaurant}</td>
+                        <td>${b.date}</td>
+                        <td>${b.time}</td>
+                        <td>${b.guests}</td>
+                        <td class="status-${b.status}">${b.status}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading data:', error);
+                alert('Failed to load data. Please check if the server is running.');
+            }
         }
 
         // Load bookings on page load and refresh every 10 seconds

@@ -14,9 +14,17 @@ def admin_dashboard():
 
 @app.route('/admin/api/bookings')
 def get_all_bookings():
-    """API endpoint to get all bookings"""
+    """API endpoint to get all bookings and user data"""
     conn = db.get_connection()
     cursor = conn.cursor()
+    
+    # Get all users
+    cursor.execute("""
+        SELECT user_id, name, phone, email, created_at, total_bookings, is_verified
+        FROM users
+        ORDER BY last_interaction DESC
+    """)
+    users_rows = cursor.fetchall()
     
     # Get all room bookings
     cursor.execute("""
@@ -39,6 +47,17 @@ def get_all_bookings():
     conn.close()
     
     return {
+        'users': [
+            {
+                'user_id': row[0],
+                'name': row[1] or 'Not provided',
+                'phone': row[2] or 'Not provided',
+                'email': row[3] or 'Not provided',
+                'created_at': row[4],
+                'total_bookings': row[5],
+                'is_verified': 'Yes' if row[6] else 'No'
+            } for row in users_rows
+        ],
         'room_bookings': [
             {
                 'booking_id': row[0],
@@ -71,4 +90,5 @@ def get_all_bookings():
     }
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    print("🎯 Admin Dashboard starting on http://localhost:5001/admin")
+    app.run(debug=True, port=5001, host='0.0.0.0')
