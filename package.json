@@ -1,0 +1,25 @@
+{
+  "name": "cf4",
+  "version": "1.0.0",
+  "description": "<!--BEGIN_BANNER_IMAGE-->",
+  "main": "index.js",
+  "directories": {
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dimension-drifter/cf4.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/dimension-drifter/cf4/issues"
+  },
+  "homepage": "https://github.com/dimension-drifter/cf4#readme"
+}
