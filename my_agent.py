@@ -69,7 +69,7 @@ IMPORTANT - Information Collection Priority:
 """
         
         super().__init__(
-            instructions=f"""You are "Kriti," the lead AI-powered voice concierge and customer support agent for the prestigious "Pink Perl" hotel located in Jaipur, Rajasthan, India.
+            instructions=f"""You are "Kriti," the lead AI-powered voice concierge and customer support agent for the prestigious "Pink Pearl" hotel located in Jaipur, Rajasthan, India.
 
 Your persona is that of a highly professional, warm, and exceptionally helpful human concierge. You are articulate, patient, and proactive. Your primary goal is to provide a seamless and delightful booking experience for every guest, making them feel valued and understood. You are not just a command-taker; you are an agentic assistant who guides the conversation to gather all necessary details efficiently.
 
@@ -81,9 +81,9 @@ Your persona is that of a highly professional, warm, and exceptionally helpful h
 
 Core Directives & Rules:
 
-1. Introduction: Always begin the conversation by introducing yourself. For example: "Welcome to the Pink Perl hotel, you're speaking with Kriti. How may I assist you today?"
+1. Introduction: Always begin the conversation by introducing yourself. For example: "Welcome to the Pink Pearl hotel, you're speaking with Kriti. How may I assist you today?"
 
-2. Hotel Name: Always refer to the hotel as "Pink Perl."
+2. Hotel Name: Always refer to the hotel as "Pink Pearl."
 
 3. Guest Information Collection:
    - ALWAYS collect guest name and phone number before finalizing any booking
@@ -320,9 +320,9 @@ async def entrypoint(ctx: JobContext):
     user_info = db.get_user(user_id)
     
     if user_info and user_info.get('name'):
-        greeting = f"Welcome back to the Pink Perl hotel, {user_info['name']}! This is Kriti. How may I assist you today?"
+        greeting = f"Welcome back to the Pink Pearl hotel, {user_info['name']}! This is Kriti. How may I assist you today?"
     else:
-        greeting = "Welcome to the Pink Perl hotel! You're speaking with Kriti. How may I assist you today?"
+        greeting = "Welcome to the Pink Pearl hotel! You're speaking with Kriti. How may I assist you today?"
     
     logger.info("🎤 Sending greeting to user...")
     await session.say(greeting, allow_interruptions=True)

@@ -3,12 +3,14 @@ import logging
 from datetime import datetime
 from typing import Optional, Dict, List
 import json
+from twilio_service import TwilioService
 
 logger = logging.getLogger("database")
 
 class HotelDatabase:
     def __init__(self, db_path: str = "hotel.db"):
         self.db_path = db_path
+        self.twilio = TwilioService()
         self.init_database()
         self.migrate_database()
     
@@ -247,7 +249,7 @@ class HotelDatabase:
                            check_in_date: str, check_out_date: str,
                            num_adults: int, num_children: int = 0,
                            special_requests: str = "") -> int:
-        """Create a room booking"""
+        """Create a room booking and send confirmation SMS"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
@@ -269,9 +271,37 @@ class HotelDatabase:
         """, (user_id,))
         
         conn.commit()
+        
+        # Get user details for SMS
+        cursor.execute("SELECT name, phone FROM users WHERE user_id = ?", (user_id,))
+        user_data = cursor.fetchone()
+        
         conn.close()
         
         logger.info(f"Room booking created: {booking_id}")
+        
+        # Send confirmation SMS
+        if user_data and user_data[1]:  # Check if phone exists
+            guest_name = user_data[0] or "Guest"
+            phone = user_data[1]
+            
+            logger.info(f"Sending confirmation SMS to {phone}")
+            sms_sent = self.twilio.send_room_booking_confirmation(
+                phone=phone,
+                guest_name=guest_name,
+                booking_id=booking_id,
+                room_type=room_type,
+                check_in=check_in_date,
+                check_out=check_out_date
+            )
+            
+            if sms_sent:
+                logger.info(f"Confirmation SMS sent for booking {booking_id}")
+            else:
+                logger.warning(f"Failed to send SMS for booking {booking_id}")
+        else:
+            logger.warning(f"No phone number found for user {user_id}, SMS not sent")
+        
         return booking_id
     
     def get_user_room_bookings(self, user_id: str) -> List[Dict]:
@@ -308,7 +338,7 @@ class HotelDatabase:
     def create_restaurant_booking(self, user_id: str, restaurant_name: str,
                                  booking_date: str, booking_time: str,
                                  num_guests: int, special_requests: str = "") -> int:
-        """Create a restaurant booking"""
+        """Create a restaurant booking and send confirmation SMS"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
@@ -330,9 +360,38 @@ class HotelDatabase:
         """, (user_id,))
         
         conn.commit()
+        
+        # Get user details for SMS
+        cursor.execute("SELECT name, phone FROM users WHERE user_id = ?", (user_id,))
+        user_data = cursor.fetchone()
+        
         conn.close()
         
         logger.info(f"Restaurant booking created: {booking_id}")
+        
+        # Send confirmation SMS
+        if user_data and user_data[1]:  # Check if phone exists
+            guest_name = user_data[0] or "Guest"
+            phone = user_data[1]
+            
+            logger.info(f"Sending confirmation SMS to {phone}")
+            sms_sent = self.twilio.send_restaurant_booking_confirmation(
+                phone=phone,
+                guest_name=guest_name,
+                booking_id=booking_id,
+                restaurant_name=restaurant_name,
+                booking_date=booking_date,
+                booking_time=booking_time,
+                num_guests=num_guests
+            )
+            
+            if sms_sent:
+                logger.info(f"Confirmation SMS sent for booking {booking_id}")
+            else:
+                logger.warning(f"Failed to send SMS for booking {booking_id}")
+        else:
+            logger.warning(f"No phone number found for user {user_id}, SMS not sent")
+        
         return booking_id
     
     def get_user_restaurant_bookings(self, user_id: str) -> List[Dict]:
@@ -365,11 +424,23 @@ class HotelDatabase:
         ]
     
     def cancel_booking(self, booking_id: int, booking_type: str):
-        """Cancel a booking"""
+        """Cancel a booking and send notification SMS"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
         table = "room_bookings" if booking_type == "room" else "restaurant_bookings"
+        
+        # Get booking and user details before cancelling
+        cursor.execute(f"""
+            SELECT b.user_id, u.name, u.phone
+            FROM {table} b
+            JOIN users u ON b.user_id = u.user_id
+            WHERE b.booking_id = ?
+        """, (booking_id,))
+        
+        result = cursor.fetchone()
+        
+        # Update booking status
         cursor.execute(f"""
             UPDATE {table}
             SET status = 'cancelled'
@@ -378,7 +449,20 @@ class HotelDatabase:
         
         conn.commit()
         conn.close()
+        
         logger.info(f"{booking_type} booking {booking_id} cancelled")
+        
+        # Send cancellation SMS
+        if result and result[2]:  # Check if phone exists
+            user_id, guest_name, phone = result
+            guest_name = guest_name or "Guest"
+            
+            self.twilio.send_cancellation_notification(
+                phone=phone,
+                guest_name=guest_name,
+                booking_id=booking_id,
+                booking_type=booking_type
+            )
     
     def get_all_users(self) -> List[Dict]:
         """Get all users with their information"""
